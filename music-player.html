@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Neon · 可视化音乐播放器</title>
+<title>Aurora · Visual Music Player</title>
 <style>
   :root{
     --bg:#070912;
@@ -25,8 +25,8 @@
     font-family:"PingFang SC","Microsoft YaHei",system-ui,-apple-system,sans-serif;
     color:var(--txt);
     background:
-      radial-gradient(900px 600px at 20% -10%,rgba(168,85,247,.18),transparent 60%),
-      radial-gradient(800px 600px at 100% 110%,rgba(34,211,238,.16),transparent 60%),
+      radial-gradient(900px 600px at 20% -10%,color-mix(in srgb,var(--c2) 18%,transparent),transparent 60%),
+      radial-gradient(800px 600px at 100% 110%,color-mix(in srgb,var(--c1) 16%,transparent),transparent 60%),
       linear-gradient(180deg,var(--bg2),var(--bg));
     overflow:hidden;
     user-select:none;
@@ -66,7 +66,7 @@
     color:var(--txt);border-radius:10px;padding:6px 12px;cursor:pointer;font-size:12px;
     transition:.18s;
   }
-  .add-btn:hover{background:rgba(168,85,247,.25);border-color:var(--c2)}
+  .add-btn:hover{background:color-mix(in srgb,var(--c2) 25%,transparent);border-color:var(--c2)}
   .list{flex:1;overflow-y:auto;padding:8px}
   .list::-webkit-scrollbar{width:8px}
   .list::-webkit-scrollbar-thumb{background:rgba(120,140,255,.3);border-radius:8px}
@@ -76,7 +76,7 @@
     border:1px solid transparent;transition:.15s;
   }
   .track:hover{background:rgba(255,255,255,.05)}
-  .track.active{background:rgba(168,85,247,.18);border-color:rgba(168,85,247,.4)}
+  .track.active{background:color-mix(in srgb,var(--c2) 18%,transparent);border-color:color-mix(in srgb,var(--c2) 40%,transparent)}
   .track .idx{width:22px;text-align:center;font-size:12px;color:var(--dim);flex:none}
   .track.active .idx{color:var(--c1)}
   .track .meta{flex:1;min-width:0}
@@ -95,6 +95,22 @@
     margin:auto;text-align:center;color:var(--dim);font-size:13px;padding:20px;line-height:1.8;
   }
   .empty-hint big{font-size:30px;display:block;margin-bottom:8px;opacity:.6}
+
+  /* ---------- 主题切换 ---------- */
+  .theme-bar{
+    display:flex;gap:8px;align-items:center;justify-content:center;
+    padding:12px 10px;border-top:1px solid var(--line);flex:none;
+  }
+  .theme-bar .sw{
+    width:26px;height:26px;border-radius:50%;border:2px solid rgba(255,255,255,.18);
+    cursor:pointer;padding:0;transition:.15s;position:relative;
+  }
+  .theme-bar .sw:hover{transform:scale(1.12)}
+  .theme-bar .sw.on{border-color:#fff;box-shadow:0 0 0 2px color-mix(in srgb,var(--c1) 60%,transparent)}
+  .theme-bar .sw.on::after{
+    content:"";position:absolute;inset:0;border-radius:50%;
+    box-shadow:0 0 12px 2px rgba(255,255,255,.5);
+  }
 
   /* ---------- 主舞台：可视化 ---------- */
   .stage{
@@ -120,7 +136,7 @@
     border-radius:10px;padding:7px 12px;cursor:pointer;font-size:12px;transition:.15s;
   }
   .mode-bar button:hover{color:var(--txt);border-color:var(--c2)}
-  .mode-bar button.on{color:#fff;background:rgba(168,85,247,.3);border-color:var(--c2)}
+  .mode-bar button.on{color:#fff;background:color-mix(in srgb,var(--c2) 30%,transparent);border-color:var(--c2)}
 
   .drop-hint{
     position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
@@ -128,7 +144,7 @@
   }
   .drop-hint .ico{font-size:46px;opacity:.5}
   .drop-hint.hide{opacity:0;transform:scale(.96)}
-  .stage.drag{border-color:var(--c1);box-shadow:0 0 0 2px rgba(34,211,238,.4) inset}
+  .stage.drag{border-color:var(--c1);box-shadow:0 0 0 2px color-mix(in srgb,var(--c1) 40%,transparent) inset}
   .stage.drag .drop-hint{color:var(--c1);transform:scale(1.04)}
 
   /* ---------- 底部控制栏 ---------- */
@@ -158,7 +174,7 @@
   .ctrl-btn:hover{background:rgba(255,255,255,.08)}
   .ctrl-btn.play{
     width:52px;height:52px;font-size:20px;
-    background:var(--accent);color:#0a0c18;box-shadow:0 6px 22px rgba(168,85,247,.4);
+    background:var(--accent);color:#0a0c18;box-shadow:0 6px 22px color-mix(in srgb,var(--c2) 40%,transparent);
   }
   .ctrl-btn.play:hover{transform:scale(1.06)}
   .vol-block{display:flex;align-items:center;justify-content:flex-end;gap:8px}
@@ -195,6 +211,7 @@
         还没有音乐<br>点击「添加」或拖入 MP3
       </div>
     </div>
+    <div class="theme-bar" id="themeBar" title="切换主题配色"></div>
   </aside>
 
   <!-- 主舞台 -->
@@ -283,6 +300,19 @@
   let beatAvg = 0;            // 低频均值（平滑）
   let bassPulse = 0;          // 脉冲值
 
+  // ====== 主题 ======
+  const THEMES = {
+    neon:   { name:'霓虹', c1:'#22d3ee', c2:'#a855f7', c3:'#f43f5e', c4:'#facc15', bg:'#070912', bg2:'#0d1024' },
+    sunset: { name:'日落', c1:'#ff8a3c', c2:'#ff4d8d', c3:'#a855f7', c4:'#ffd166', bg:'#0c0710', bg2:'#1a0d18' },
+    ocean:  { name:'深海', c1:'#38bdf8', c2:'#3b82f6', c3:'#22d3ee', c4:'#a5f3fc', bg:'#04101f', bg2:'#08203a' },
+    forest: { name:'森林', c1:'#34d399', c2:'#10b981', c3:'#a3e635', c4:'#facc15', bg:'#06140d', bg2:'#0b1f17' },
+    candy:  { name:'糖果', c1:'#f472b6', c2:'#c084fc', c3:'#fb7185', c4:'#fcd34d', bg:'#120a14', bg2:'#1f1024' },
+    mono:   { name:'极简', c1:'#e5e7eb', c2:'#9ca3af', c3:'#6b7280', c4:'#fbbf24', bg:'#0a0a0c', bg2:'#141418' },
+  };
+  let theme = 'neon';
+  let pal = [];        // 画布配色：[[r,g,b],...] 由 c1..c4 生成
+  let bgRGB = [7,9,18]; // 当前背景色（用于拖尾清屏）
+
   // ====== 工具 ======
   const fmt = s => {
     if(!isFinite(s)||s<0) s=0;
@@ -294,6 +324,40 @@
     clearTimeout(toast._t); toast._t=setTimeout(()=>toastEl.classList.remove('show'),1800);
   }
   function uid(){ return Math.random().toString(36).slice(2,9); }
+
+  function hex2rgb(h){ h=h.replace('#',''); return [parseInt(h.slice(0,2),16),parseInt(h.slice(2,4),16),parseInt(h.slice(4,6),16)]; }
+  function buildPal(t){ const th=THEMES[t]; pal=[hex2rgb(th.c1),hex2rgb(th.c2),hex2rgb(th.c3),hex2rgb(th.c4)]; bgRGB=hex2rgb(th.bg); }
+
+  // 按主题调色板取色：t∈[0,1] 在 c1→c2→c3→c4→c1 间循环插值
+  function palAt(t, a){
+    const n=pal.length; const s=(t%1+1)%1*n; const i=Math.floor(s)%n; const j=(i+1)%n; const f=s-Math.floor(s);
+    const A=pal[i], B=pal[j];
+    return 'rgba('+((A[0]+(B[0]-A[0])*f)|0)+','+((A[1]+(B[1]-A[1])*f)|0)+','+((A[2]+(B[2]-A[2])*f)|0)+','+a+')';
+  }
+  function bgCss(a){ return 'rgba('+bgRGB[0]+','+bgRGB[1]+','+bgRGB[2]+','+a+')'; }
+
+  function applyTheme(t){
+    if(!THEMES[t]) t='neon';
+    theme=t; const th=THEMES[t];
+    const r=document.documentElement.style;
+    r.setProperty('--c1',th.c1); r.setProperty('--c2',th.c2);
+    r.setProperty('--c3',th.c3); r.setProperty('--c4',th.c4);
+    r.setProperty('--bg',th.bg); r.setProperty('--bg2',th.bg2);
+    buildPal(t);
+    document.querySelectorAll('.theme-bar .sw').forEach(s=>s.classList.toggle('on', s.dataset.t===t));
+    try{ localStorage.setItem('aurora-theme', t); }catch(e){}
+  }
+  function renderThemes(){
+    const bar=document.getElementById('themeBar'); bar.innerHTML='';
+    Object.keys(THEMES).forEach(key=>{
+      const th=THEMES[key];
+      const b=document.createElement('button');
+      b.className='sw'; b.dataset.t=key; b.title=th.name;
+      b.style.background='linear-gradient(135deg,'+th.c1+','+th.c2+','+th.c3+')';
+      b.addEventListener('click', ()=>{ applyTheme(key); toast('主题：'+th.name); });
+      bar.appendChild(b);
+    });
+  }
 
   // ====== 播放列表 ======
   function addFiles(files){
@@ -497,19 +561,19 @@
     if(freqArr){ for(let i=0;i<8;i++) bass+=freqArr[i]; bass/=8*255; }
     bassPulse += (bass - bassPulse)*0.18;
 
-    // 拖尾清屏
-    ctx.fillStyle = 'rgba(7,9,18,0.28)';
+    // 拖尾清屏（颜色跟随主题背景）
+    ctx.fillStyle = bgCss(0.28);
     ctx.fillRect(0,0,W,H);
 
     const cx=W/2, cy=H/2;
     const baseR = Math.min(W,H)*0.16;
     const maxBar= Math.min(W,H)*0.26;
 
-    // 背景径向光（随贝斯呼吸）
+    // 背景径向光（随贝斯呼吸，颜色跟随主题）
     const glow = ctx.createRadialGradient(cx,cy,0,cx,cy,Math.max(W,H)*0.5);
-    glow.addColorStop(0, `rgba(168,85,247,${0.10+bassPulse*0.22})`);
-    glow.addColorStop(0.4,`rgba(34,211,238,${0.05+bassPulse*0.10})`);
-    glow.addColorStop(1, 'rgba(7,9,18,0)');
+    glow.addColorStop(0, palAt(0.30, 0.10+bassPulse*0.22));
+    glow.addColorStop(0.4, palAt(0.02, 0.05+bassPulse*0.10));
+    glow.addColorStop(1, bgCss(0));
     ctx.fillStyle=glow; ctx.fillRect(0,0,W,H);
 
     rot += 0.003 + bassPulse*0.02;
@@ -541,10 +605,9 @@
       const r1 = baseR, r2 = baseR+len;
       const x1=cx+Math.cos(a)*r1, y1=cy+Math.sin(a)*r1;
       const x2=cx+Math.cos(a)*r2, y2=cy+Math.sin(a)*r2;
-      const hue = 180 + (i/N)*200; // 青→紫→玫红
       const g = ctx.createLinearGradient(x1,y1,x2,y2);
-      g.addColorStop(0, `hsla(${hue},90%,65%,.95)`);
-      g.addColorStop(1, `hsla(${hue+30},90%,60%,0)`);
+      g.addColorStop(0, palAt(i/N, 0.95));
+      g.addColorStop(1, palAt(i/N+0.08, 0));
       ctx.strokeStyle=g;
       ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
       // 镜像（下方对称）
@@ -566,8 +629,8 @@
       const x = i*bw;
       const y = H - h;
       const g = ctx.createLinearGradient(0,y,0,H);
-      g.addColorStop(0, `hsla(${200+i*3},90%,65%,.9)`);
-      g.addColorStop(1, `hsla(${280+i*3},90%,55%,.15)`);
+      g.addColorStop(0, palAt(i/N*0.75, 0.9));
+      g.addColorStop(1, palAt(i/N*0.75+0.18, 0.15));
       ctx.fillStyle=g;
       ctx.fillRect(x+1, y, bw-2, h);
       // 镜像倒影
@@ -581,8 +644,8 @@
   function drawWave(W,H,waveArr){
     if(!waveArr) return;
     const n = waveArr.length;
-    ctx.lineWidth=2; ctx.strokeStyle='rgba(34,211,238,.85)';
-    ctx.shadowBlur=12; ctx.shadowColor='rgba(34,211,238,.6)';
+    ctx.lineWidth=2; ctx.strokeStyle=palAt(0.02, 0.85);
+    ctx.shadowBlur=12; ctx.shadowColor=palAt(0.02, 0.6);
     ctx.beginPath();
     for(let i=0;i<n;i++){
       const x = i/(n-1)*W;
@@ -597,24 +660,24 @@
   function drawCenter(cx,cy,baseR){
     const r = baseR*0.72 + bassPulse*8;
     // 外光
-    ctx.shadowBlur=30; ctx.shadowColor=`rgba(168,85,247,${.5+bassPulse*.4})`;
-    // 黑胶
+    ctx.shadowBlur=30; ctx.shadowColor=palAt(0.25, .5+bassPulse*.4);
+    // 黑胶（带主题色调高光，渐隐到黑）
     const g = ctx.createRadialGradient(cx-r*0.3,cy-r*0.3,r*0.1,cx,cy,r);
-    g.addColorStop(0,'#3a2a55');
-    g.addColorStop(0.6,'#15122a');
-    g.addColorStop(1,'#080713');
+    g.addColorStop(0, palAt(0.3, 0.42));
+    g.addColorStop(0.55, 'rgba(0,0,0,0.55)');
+    g.addColorStop(1, 'rgba(0,0,0,0.9)');
     ctx.fillStyle=g;
     ctx.beginPath(); ctx.arc(cx,cy,r,0,Math.PI*2); ctx.fill();
     ctx.shadowBlur=0;
     // 纹槽
-    ctx.strokeStyle='rgba(168,85,247,.12)'; ctx.lineWidth=1;
+    ctx.strokeStyle=palAt(0.25, 0.12); ctx.lineWidth=1;
     for(let i=1;i<=6;i++){
       ctx.beginPath(); ctx.arc(cx,cy, r*i/7, 0, Math.PI*2); ctx.stroke();
     }
-    // 旋转的标签
+    // 旋转的标签（颜色随旋转循环）
     ctx.save();
     ctx.translate(cx,cy); ctx.rotate(rot*4);
-    ctx.fillStyle = `hsla(${(rot*60)%360},90%,65%,.9)`;
+    ctx.fillStyle = palAt(rot*0.05, 0.9);
     ctx.beginPath(); ctx.arc(0,0,r*0.18,0,Math.PI*2); ctx.fill();
     ctx.restore();
   }
@@ -628,7 +691,7 @@
       particles.push({
         x:cx+Math.cos(a)*baseR, y:cy+Math.sin(a)*baseR,
         vx:Math.cos(a)*sp, vy:Math.sin(a)*sp,
-        life:1, hue: 180+Math.random()*160
+        life:1, t: Math.random()
       });
     }
     if(particles.length>260) particles.splice(0,particles.length-260);
@@ -638,7 +701,7 @@
       const p=particles[i];
       p.x+=p.vx; p.y+=p.vy; p.vx*=0.97; p.vy*=0.97; p.life-=0.018;
       if(p.life<=0){ particles.splice(i,1); continue; }
-      ctx.fillStyle=`hsla(${p.hue},90%,65%,${p.life})`;
+      ctx.fillStyle=palAt(p.t, p.life);
       ctx.beginPath(); ctx.arc(p.x,p.y,2.4*p.life+0.5,0,Math.PI*2); ctx.fill();
     }
   }
@@ -650,6 +713,12 @@
       // 仍在 loop 中，loop 会以空数据绘制呼吸光
     }
   }
+  // 主题初始化
+  renderThemes();
+  let savedTheme='neon';
+  try{ savedTheme = localStorage.getItem('aurora-theme') || 'neon'; }catch(e){}
+  applyTheme(savedTheme);
+
   // 开启渲染循环（即便未播放，也展示待机光晕）
   loop();
 })();
