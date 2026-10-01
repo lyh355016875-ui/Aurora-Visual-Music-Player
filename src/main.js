@@ -46,6 +46,7 @@ const ui = createUI({ store, engine, els });
 
 ui.init();
 viz.attachResize();
+viz.attachInteraction(() => ui.toggle());
 
 let last = performance.now();
 function loop(now) {
@@ -53,9 +54,11 @@ function loop(now) {
   const dt = Math.min(0.05, (now - last) / 1000);
   last = now;
   const s = store.state;
+  const playing = !els.audio.paused;
   viz.frame(dt, {
-    data: engine.sample(!els.audio.paused),
+    data: engine.sample(playing),
     mode: s.mode,
+    playing,
     palAt: ui.palAt,
     bgRGB: ui.bgRGB,
   });

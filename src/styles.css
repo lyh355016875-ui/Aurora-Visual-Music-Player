@@ -189,7 +189,8 @@
   .mode-bar button.on{color:#fff;background:color-mix(in srgb,var(--c2) 35%,transparent)}
 
   .drop-hint{
-    position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;
+    padding-bottom:11%;
     color:var(--dim);font-size:15px;gap:14px;pointer-events:none;transition:.2s;
   }
   .drop-hint .ico{font-size:48px;opacity:.5}

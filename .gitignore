@@ -12,5 +12,7 @@ desktop.ini
 # 构建
 node_modules/
 dist/
+# 本地设计参考资料（第三方产品截图，默认不入库）
+research/
 # ACL 修复备份（diagnose-windows-sandbox-acl 生成）
 .acl-recovery/

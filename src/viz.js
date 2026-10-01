@@ -1,4 +1,5 @@
 import { bgCss } from './themes.js';
+import { Turntable } from './turntable.js';
 
 export class Viz {
   constructor(canvas, stage) {
@@ -9,6 +10,7 @@ export class Viz {
     this.particles = [];
     this.beatAvg = 0;
     this.bassPulse = 0;
+    this.tt = new Turntable();
   }
 
   attachResize() {
@@ -22,6 +24,24 @@ export class Viz {
     window.addEventListener('resize', resize);
     new ResizeObserver(resize).observe(this.stage);
     resize();
+  }
+
+  // 悬停在唱片上 = 指针反馈；点击唱片 = 播放/暂停
+  attachInteraction(onToggle) {
+    const stage = this.stage;
+    stage.addEventListener('pointermove', e => {
+      const r = stage.getBoundingClientRect();
+      const x = e.clientX - r.left, y = e.clientY - r.top;
+      const over = this.tt.hit(x, y);
+      this.tt.setPointer((x / r.width) * 2 - 1, (y / r.height) * 2 - 1, over);
+      stage.style.cursor = over ? 'pointer' : '';
+    });
+    stage.addEventListener('pointerleave', () => this.tt.setPointer(0, 0, false));
+    stage.addEventListener('click', e => {
+      if (e.target.closest('.mode-bar')) return;
+      const r = stage.getBoundingClientRect();
+      if (this.tt.hit(e.clientX - r.left, e.clientY - r.top)) onToggle();
+    });
   }
 
   frame(dt, o) {
@@ -43,8 +63,9 @@ export class Viz {
     ctx.fillRect(0, 0, W, H);
 
     const cx = W / 2, cy = H / 2;
-    const baseR = Math.min(W, H) * 0.16;
-    const maxBar = Math.min(W, H) * 0.26;
+    const min = Math.min(W, H);
+    const baseR = min * 0.26;
+    const maxBar = min * 0.20;
 
     // 背景径向光（随贝斯呼吸，颜色跟随主题）
     const glow = ctx.createRadialGradient(cx, cy, 0, cx, cy, Math.max(W, H) * 0.5);
@@ -56,14 +77,17 @@ export class Viz {
 
     this.rot += (0.003 + this.bassPulse * 0.02) * k;
 
-    if (o.mode === 'ring' || o.mode === 'fusion') this.drawRing(cx, cy, baseR, maxBar, freqArr, o.palAt);
     if (o.mode === 'bars' || o.mode === 'fusion') this.drawBars(W, H, freqArr, o.palAt);
+    if (o.mode === 'ring' || o.mode === 'fusion') this.drawRing(cx, cy, baseR, maxBar, freqArr, o.palAt);
     if (o.mode === 'wave' || o.mode === 'fusion') this.drawWave(W, H, waveArr, o.palAt);
-    if (o.mode === 'fusion') this.drawCenter(cx, cy, baseR, o.palAt);
+
+    // 唱机：舞台中心的实体
+    this.tt.update(dt, o.playing);
+    this.tt.draw(ctx, { cx, cy, r: min * 0.19, palAt: o.palAt, bass: this.bassPulse });
 
     if (freqArr) {
       this.beatAvg += (bass - this.beatAvg) * Math.min(1, 0.1 * k);
-      if (bass - this.beatAvg > 0.18 && bass > 0.45) this.spawnBeat(cx, cy, baseR);
+      if (bass - this.beatAvg > 0.18 && bass > 0.45) this.spawnBeat(cx, cy, min * 0.20);
     }
     this.updateParticles(k, o.palAt);
   }
@@ -133,39 +157,14 @@ export class Viz {
     ctx.shadowBlur = 0;
   }
 
-  drawCenter(cx, cy, baseR, palAt) {
-    const ctx = this.ctx;
-    const r = baseR * 0.72 + this.bassPulse * 8;
-    ctx.shadowBlur = 30;
-    ctx.shadowColor = palAt(0.25, .5 + this.bassPulse * .4);
-    const g = ctx.createRadialGradient(cx - r * 0.3, cy - r * 0.3, r * 0.1, cx, cy, r);
-    g.addColorStop(0, palAt(0.3, 0.42));
-    g.addColorStop(0.55, 'rgba(0,0,0,0.55)');
-    g.addColorStop(1, 'rgba(0,0,0,0.9)');
-    ctx.fillStyle = g;
-    ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill();
-    ctx.shadowBlur = 0;
-    ctx.strokeStyle = palAt(0.25, 0.12);
-    ctx.lineWidth = 1;
-    for (let i = 1; i <= 6; i++) {
-      ctx.beginPath(); ctx.arc(cx, cy, r * i / 7, 0, Math.PI * 2); ctx.stroke();
-    }
-    ctx.save();
-    ctx.translate(cx, cy);
-    ctx.rotate(this.rot * 4);
-    ctx.fillStyle = palAt(this.rot * 0.05, 0.9);
-    ctx.beginPath(); ctx.arc(0, 0, r * 0.18, 0, Math.PI * 2); ctx.fill();
-    ctx.restore();
-  }
-
   spawnBeat(cx, cy, baseR) {
     const n = 14;
     for (let i = 0; i < n; i++) {
       const a = Math.random() * Math.PI * 2;
       const sp = 2 + Math.random() * 4;
       this.particles.push({
-        x: cx + Math.cos(a) * baseR, y: cy + Math.sin(a) * baseR,
-        vx: Math.cos(a) * sp, vy: Math.sin(a) * sp,
+        x: cx + Math.cos(a) * baseR, y: cy + Math.sin(a) * baseR * 0.65,
+        vx: Math.cos(a) * sp, vy: Math.sin(a) * sp * 0.65,
         life: 1, t: Math.random(),
       });
     }
