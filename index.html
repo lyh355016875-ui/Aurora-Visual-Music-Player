@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Aurora · Visual Music Player</title>
+</head>
+<body>
+
+<div class="app">
+  <!-- 顶部品牌栏 -->
+  <header class="appbar">
+    <div class="brand">
+      <div class="logo"><div class="bars"><i></i><i></i><i></i><i></i></div></div>
+      <div class="bt"><b>AURORA</b><small>VISUAL MUSIC PLAYER</small></div>
+    </div>
+    <div class="right">
+      <span class="theme-name" id="themeName">霓虹</span>
+      <span class="ver">v2.0</span>
+    </div>
+  </header>
+
+  <!-- 侧栏 -->
+  <aside class="sidebar">
+    <div class="side-head">
+      <div class="st"><h1>PLAYLIST</h1><span class="count" id="count">0</span></div>
+      <button class="add-btn" id="addBtn">＋ 添加</button>
+    </div>
+    <div class="list" id="list">
+      <div class="empty-hint" id="listEmpty">
+        <big>♫</big>
+        还没有音乐<br>点击「添加」或拖入 MP3
+      </div>
+    </div>
+    <div class="theme-bar" id="themeBar" title="切换主题配色">
+      <span class="lbl">THEME</span>
+    </div>
+  </aside>
+
+  <!-- 主舞台 -->
+  <main class="stage" id="stage">
+    <canvas id="viz"></canvas>
+    <div class="leg"></div>
+    <div class="drop-hint" id="dropHint">
+      <div class="ico">🎧</div>
+      <div>拖入 MP3 文件，或点击右下角「添加」</div>
+    </div>
+    <div class="stage-overlay">
+      <div class="now-playing">
+        <div class="np-cover" id="npCover"></div>
+        <div class="np-text">
+          <div class="tag">NOW PLAYING</div>
+          <div class="title" id="npTitle">未在播放</div>
+          <div class="sub" id="npSub">等待你上传音频</div>
+        </div>
+      </div>
+      <div class="mode-bar">
+        <button data-mode="fusion" class="on"><span class="ic">◎</span>融合</button>
+        <button data-mode="ring"><span class="ic">◯</span>环形</button>
+        <button data-mode="bars"><span class="ic">≣</span>频谱</button>
+        <button data-mode="wave"><span class="ic">～</span>波形</button>
+      </div>
+    </div>
+  </main>
+
+  <!-- 控制栏 -->
+  <footer class="controls">
+    <div class="seek-wrap">
+      <span class="time-block"><span id="curTime">0:00</span></span>
+      <div class="seek" id="seek">
+        <div class="seek-track"><div class="seek-fill" id="seekFill"></div></div>
+        <div class="seek-thumb" id="seekThumb"></div>
+        <input type="range" id="seekInput" min="0" max="1000" value="0" step="1">
+      </div>
+      <span class="time-block r"><span id="totTime">0:00</span></span>
+    </div>
+
+    <div class="center-controls">
+      <button class="ctrl-btn" id="prevBtn" title="上一首 (P)">⏮</button>
+      <button class="ctrl-btn play" id="playBtn" title="播放/暂停 (Space)">▶</button>
+      <button class="ctrl-btn" id="nextBtn" title="下一首 (N)">⏭</button>
+    </div>
+
+    <div class="vol-block">
+      <span class="vol-icon">🔊</span>
+      <input type="range" id="volInput" min="0" max="1" step="0.01" value="0.8">
+    </div>
+  </footer>
+</div>
+
+<input type="file" id="fileInput" accept="audio/*,.mp3" multiple hidden>
+<audio id="audio" preload="metadata"></audio>
+<div class="toast" id="toast"></div>
+
+<script type="module" src="/src/main.js"></script>
+</body>
+</html>

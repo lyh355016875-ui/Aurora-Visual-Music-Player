@@ -9,5 +9,8 @@ desktop.ini
 # 临时
 *.tmp
 *~
+# 构建
+node_modules/
+dist/
 # ACL 修复备份（diagnose-windows-sandbox-acl 生成）
 .acl-recovery/
